@@ -12,7 +12,6 @@ namespace ActiveLearningBot
     [Serializable]
     public class LuisLearnService
     {
-        private LuisApp luisApp;
         private LuisProgClient luisProgClient;
 
         public LuisLearnService()
@@ -21,11 +20,10 @@ namespace ActiveLearningBot
             luisProgClient = new LuisProgClient(subscriptionKey, Location.WestUS);
         }
 
-        public async Task SetNameApp() => luisApp = await luisProgClient.GetAppByNameAsync(ConfigurationManager.AppSettings.Get("LuisAppName"));
 
         public async Task LearnLatestMessageSended(string intent, IDialogContext dialogContext)
         {
-            var message = dialogContext.UserData.GetValue<string>("MessageId");
+            dialogContext.UserData.TryGetValue("MessageId", out string message);
             if (string.IsNullOrEmpty(message)) return;
 
             await Learn(message, intent);
@@ -35,8 +33,8 @@ namespace ActiveLearningBot
         public async Task Learn(string message, string intent)
         {
             var example = CreateExample(message, intent);
+            var app = await luisProgClient.GetAppByNameAsync(ConfigurationManager.AppSettings.Get("LuisAppName"));
 
-            var app = await luisProgClient.GetAppByNameAsync("PresentationBot");
             await luisProgClient.AddExampleAsync(app.Id, app.Endpoints.Production.VersionId, example);
 
             await luisProgClient.TrainAsync(app.Id, app.Endpoints.Production.VersionId);
@@ -48,11 +46,12 @@ namespace ActiveLearningBot
         private async Task VerifyStatusTraining(LuisProgClient client, LuisApp app)
         {
             IEnumerable<Training> trainingList;
-            do
+            for (int attempts = 0; attempts < 3; attempts++)
             {
                 trainingList = await client.GetTrainingStatusListAsync(app.Id, app.Endpoints.Production.VersionId);
+                if (trainingList.All(x => x.Details.Status.Equals("Success")))
+                    return;
             }
-            while (!trainingList.All(x => x.Details.Status.Equals("Success")));
         }
 
         private Example CreateExample(string message, string intent) => new Example

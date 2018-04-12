@@ -138,6 +138,8 @@
   <ItemGroup>
     <Content Include="default.htm" />
     <Content Include="Global.asax" />
+    <Content Include="Resources\BotPaul.png" />
+    <Content Include="Resources\BotPaulHappy.png" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
@@ -146,11 +148,12 @@
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\MessagesController.cs" />
     <Compile Include="Dialogs\BaseLuisDialog.cs" />
-    <Compile Include="Dialogs\MainPage.cs" />
+    <Compile Include="Dialogs\MainDialog.cs" />
     <Compile Include="Dialogs\RootDialog.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Services\AnnouncerService.cs" />
     <Compile Include="Services\LuisLearnService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

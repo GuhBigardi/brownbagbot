@@ -1,4 +1,5 @@
-﻿using Microsoft.Bot.Builder.Dialogs;
+﻿using ActiveLearningBot.Services;
+using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Luis.Models;
 using Microsoft.Bot.Connector;
 using System;
@@ -13,14 +14,16 @@ namespace ActiveLearningBot.Dialogs
     {
         [NonSerialized]
         private LuisLearnService luisLearnService;
-
-        public MainDialog()
-        {
-          
-        }
+        [NonSerialized]
+        private AnnouncerService announcerService;
 
         [LuisIntent("None")]
         public async Task None(IDialogContext context, LuisResult result)
+        {
+            await NotUnderstandMessage(context, result);
+        }
+
+        private static async Task NotUnderstandMessage(IDialogContext context, LuisResult result)
         {
             context.UserData.SetValue("MessageId", result.Query);
             var card = new HeroCard
@@ -41,17 +44,17 @@ namespace ActiveLearningBot.Dialogs
         {
             return new List<CardAction>
             {
+                //new CardAction
+                //{
+                //    Title = "Desejo apontar as horas",
+                //    Type = ActionTypes.ImBack,
+                //    Value = "Desejo apontar as horas"
+                //},
                 new CardAction
                 {
-                    Title = "Desejo apontar as horas",
+                    Title = "Oi",
                     Type = ActionTypes.ImBack,
-                    Value = "Desejo apontar as horas"
-                },
-                new CardAction
-                {
-                    Title = "Calma Fera, Só estou te cumprimentando",
-                    Type = ActionTypes.ImBack,
-                    Value = "Só estou te cumprimentando"
+                    Value = "Oi"
                 },
                 new CardAction
                 {
@@ -62,29 +65,39 @@ namespace ActiveLearningBot.Dialogs
             };
         }
 
-        [LuisIntent("Saudacao")]
+        [LuisIntent("Cumprimento")]
         public async Task Saudacao(IDialogContext context, LuisResult result)
         {
             LearnLatestMessageSended(result.TopScoringIntent.Intent, context);
 
             await context.PostAsync($"Bem-vindo(a) a Lambda3! Sou o seu assistente virtual, ja apontou suas horas hoje? 🕵");
             context.Wait(MessageReceived);
+
+            await SendMessageCongratulations(context);
         }
 
-
-        [LuisIntent("Requisitar.Ajuda.Bot")]
-        public async Task ApontamentoHora(IDialogContext context, LuisResult result)
+        private async Task SendMessageCongratulations(IDialogContext context)
         {
-            LearnLatestMessageSended(result.TopScoringIntent.Intent, context);
-
-            await context.PostAsync($"https://spine.lambda3.com.br/");
-            context.Wait(MessageReceived);
+            announcerService = new AnnouncerService();
+            var card = announcerService.SendMessageCongratulations().ToAttachment();
+            var msg = context.MakeMessage();
+            msg.Attachments.Add(card);
+            await context.PostAsync(msg);
         }
+
+
+        //[LuisIntent("Requisitar.Ajuda.Bot")]
+        //public async Task ApontamentoHora(IDialogContext context, LuisResult result)
+        //{
+        //    LearnLatestMessageSended(result.TopScoringIntent.Intent, context);
+
+        //    await context.PostAsync($"https://spine.lambda3.com.br/");
+        //    context.Wait(MessageReceived);
+        //}
 
         private void LearnLatestMessageSended(string intent, IDialogContext dialogContext)
         {
             luisLearnService = new LuisLearnService();
-            luisLearnService.SetNameApp().GetAwaiter();
 
             HostingEnvironment.QueueBackgroundWorkItem(workItem =>
                 luisLearnService?.LearnLatestMessageSended(intent, dialogContext));

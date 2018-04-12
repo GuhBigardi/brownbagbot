@@ -1,5 +1,8 @@
-﻿using Microsoft.Bot.Builder.Dialogs;
+﻿using ActiveLearningBot.Services;
+using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Connector;
+using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -37,6 +40,7 @@ namespace ActiveLearningBot
                 // Handle conversation state changes, like members being added and removed
                 // Use Activity.MembersAdded and Activity.MembersRemoved and Activity.Action for info
                 // Not available in all channels
+                IntroductBotForNewUsers(message);
             }
             else if (message.Type == ActivityTypes.ContactRelationUpdate)
             {
@@ -52,6 +56,24 @@ namespace ActiveLearningBot
             }
 
             return null;
+        }
+        private void IntroductBotForNewUsers(Activity activity)
+        {
+            if (activity.MembersAdded != null && activity.MembersAdded.Any())
+            {
+                var botId = activity.Recipient.Id;
+                var test = activity.MembersAdded.Select(m => m).Where(m => m.Id != botId).ToList();
+
+                if (activity.MembersAdded.Any(m => m.Id != botId))
+                {
+                    var connector = new ConnectorClient(new Uri(activity.ServiceUrl));
+                    var announcer = new AnnouncerService();
+                    var reply = activity.CreateReply();
+
+                    reply.Attachments.Add(announcer.GenerateIntroduction().ToAttachment());
+                    connector.Conversations.ReplyToActivityAsync(reply);
+                }
+            }
         }
     }
 }
